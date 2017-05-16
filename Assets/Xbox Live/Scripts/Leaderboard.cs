@@ -26,14 +26,13 @@ public class Leaderboard : MonoBehaviour
     [Range(1, 100)]
     public uint entryCount = 10;
 
+    public Text headerText;
+
     [HideInInspector]
     public uint currentPage;
 
     [HideInInspector]
     public uint totalPages;
-
-    [HideInInspector]
-    public Text headerText;
 
     [HideInInspector]
     public Text pageText;
@@ -76,6 +75,11 @@ public class Leaderboard : MonoBehaviour
         StatsManagerComponent.Instance.LocalUserAdded += this.LocalUserAdded;
         StatsManagerComponent.Instance.GetLeaderboardCompleted += this.GetLeaderboardCompleted;
         this.isLocalUserAdded = false;
+    }
+
+    public void RequestFlushToService(System.Boolean isHighPriority)
+    {
+        StatsManagerComponent.Instance.RequestFlushToService(isHighPriority);
     }
 
     public void Refresh()
