@@ -22,13 +22,13 @@ public class UserProfile : MonoBehaviour
     [HideInInspector]
     public GameObject signInPanel;
 
-    [HideInInspector]
+    
     public GameObject profileInfoPanel;
 
     [HideInInspector]
     public Image gamerpic;
 
-    [HideInInspector]
+    
     public Image gamerpicMask;
 
     [HideInInspector]

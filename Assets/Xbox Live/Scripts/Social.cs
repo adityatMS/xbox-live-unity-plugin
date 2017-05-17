@@ -1,11 +1,9 @@
-﻿// -----------------------------------------------------------------------
-//  <copyright file="Leaderboard.cs" company="Microsoft">
-//      Copyright (c) Microsoft. All rights reserved.
-//      Licensed under the MIT license. See LICENSE file in the project root for full license information.
-//  </copyright>
-// -----------------------------------------------------------------------
+﻿// Copyright (c) Microsoft Corporation
+// Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 using System;
+using global::System.Collections;
+using global::System.Collections.Generic;
 
 using Microsoft.Xbox.Services;
 using Microsoft.Xbox.Services.Social.Manager;
@@ -13,94 +11,71 @@ using Microsoft.Xbox.Services.Social.Manager;
 using UnityEngine;
 using UnityEngine.UI;
 
-[Serializable]
 public class Social : MonoBehaviour
 {
-    [HideInInspector]
-    public Dropdown presenceFilter;
-
-    [HideInInspector]
-    public Dropdown relationshipFilter;
-
-    [HideInInspector]
+    public Dropdown presenceFilterDropdown;
     public Transform contentPanel;
-
-    [HideInInspector]
     public ScrollRect scrollRect;
 
+    private Dictionary<int, XboxSocialUserGroup> socialUserGroups = new Dictionary<int, XboxSocialUserGroup>();
     private ObjectPool entryObjectPool;
-    private bool isLocalUserAdded;
 
     private void Awake()
     {
         this.EnsureEventSystem();
-
         this.entryObjectPool = this.GetComponent<ObjectPool>();
+        SocialManagerComponent.Instance.EventProcessed += this.OnEventProcessed;
 
-        StatsManagerComponent.Instance.LocalUserAdded += this.LocalUserAdded;
-        StatsManagerComponent.Instance.GetLeaderboardCompleted += this.GetLeaderboardCompleted;
-        this.isLocalUserAdded = false;
+        presenceFilterDropdown.options.Clear();
+        presenceFilterDropdown.options.Add(new Dropdown.OptionData() { text = PresenceFilter.All.ToString() });
+        presenceFilterDropdown.options.Add(new Dropdown.OptionData() { text = PresenceFilter.AllOnline.ToString() });
+        presenceFilterDropdown.value = 0;
+        presenceFilterDropdown.RefreshShownValue();
+
+        presenceFilterDropdown.onValueChanged.AddListener(delegate
+        {
+            PresenceFilterValueChangedHandler(presenceFilterDropdown);
+        });
     }
 
-    public void Refresh()
+    private void OnEventProcessed(object sender, SocialEvent socialEvent)
     {
-        
+        switch (socialEvent.EventType)
+        {
+            case SocialEventType.LocalUserAdded:
+                if (socialEvent.Exception == null)
+                {
+                    CreateDefaulSocialGraphs();
+                }
+                break;
+            case SocialEventType.SocialUserGroupLoaded:
+                break;
+        }
+
+        RefreshSocialGroups();
     }
 
-    private void UpdateData(uint newPage)
+    private void PresenceFilterValueChangedHandler(Dropdown target)
     {
-        if (!this.isLocalUserAdded) return;
-
-        //LeaderboardQuery query;
-        //if (newPage == this.currentPage + 1 && this.leaderboardData != null && this.leaderboardData.HasNext)
-        //{
-        //    query = this.leaderboardData.NextQuery;
-        //}
-        //else
-        //{
-        //    query = new LeaderboardQuery
-        //    {
-        //        StatName = this.stat.Name,
-        //        SocialGroup = this.socialGroup,
-        //        SkipResultsToRank = newPage == 0 ? 0 : (this.currentPage * this.entryCount) - 1,
-        //        MaxItems = this.entryCount,
-        //    };
-
-        //    // Handle last page
-        //    if (this.totalPages > 0 && newPage == this.totalPages)
-        //    {
-        //        query.SkipResultsToRank = (newPage * this.entryCount) - 1;
-        //        newPage -= 1;
-        //    }
-        //}
-
-        //this.currentPage = newPage;
-        //XboxLive.Instance.StatsManager.GetLeaderboard(XboxLiveComponent.Instance.User, query);
+        RefreshSocialGroups();
     }
 
-    private void LocalUserAdded(object sender, XboxLiveUserEventArgs e)
+    private void CreateDefaulSocialGraphs()
     {
-        this.isLocalUserAdded = true;
-        Refresh();
+        XboxSocialUserGroup allSocialUserGroup = XboxLive.Instance.SocialManager.CreateSocialUserGroupFromFilters(XboxLiveComponent.Instance.User, PresenceFilter.All, RelationshipFilter.Friends);
+        this.socialUserGroups.Add(0, allSocialUserGroup);
+
+        XboxSocialUserGroup allOnlineSocialUserGroup = XboxLive.Instance.SocialManager.CreateSocialUserGroupFromFilters(XboxLiveComponent.Instance.User, PresenceFilter.AllOnline, RelationshipFilter.Friends);
+        this.socialUserGroups.Add(1, allOnlineSocialUserGroup);
     }
 
-    //private void GetLeaderboardCompleted(object sender, XboxLivePrefab.StatEventArgs e)
-    //{
-    //    if (e.EventData.ErrorInfo != null) return;
-
-    //    LeaderboardResultEventArgs leaderboardArgs = (LeaderboardResultEventArgs)e.EventData.EventArgs;
-    //    this.LoadResult(leaderboardArgs.Result);
-    //}
-
-    /// <summary>
-    /// Load the leaderboard result data from the service into the view.
-    /// </summary>
-    /// <param name="result"></param>
-    private void LoadResult()
+    private void RefreshSocialGroups()
     {
-        // if (this.stat == null || this.stat.Name != result.NextQuery.StatName || this.socialGroup != result.NextQuery.SocialGroup) return;
-
-        // this.leaderboardData = result;
+        XboxSocialUserGroup socialUserGroup;
+        if (!this.socialUserGroups.TryGetValue(presenceFilterDropdown.value, out socialUserGroup))
+        {
+            throw new Exception("Invalid PresenceFilter selected");
+        }
 
         while (this.contentPanel.childCount > 0)
         {
@@ -108,18 +83,16 @@ public class Social : MonoBehaviour
             this.entryObjectPool.ReturnObject(entry);
         }
 
-        //foreach (LeaderboardRow row in this.leaderboardData.Rows)
-        //{
-        //    GameObject entryObject = this.entryObjectPool.GetObject();
-        //    LeaderboardEntry entry = entryObject.GetComponent<LeaderboardEntry>();
+        foreach (XboxSocialUser user in socialUserGroup.Users)
+        {
+            GameObject entryObject = this.entryObjectPool.GetObject();
+            XboxSocialUserEntry entry = entryObject.GetComponent<XboxSocialUserEntry>();
 
-        //    entry.Data = row;
-
-        //    entryObject.transform.SetParent(this.contentPanel);
-        //}
+            entry.Data = user;
+            entryObject.transform.SetParent(this.contentPanel);
+        }
 
         // Reset the scroll view to the top.
         this.scrollRect.verticalNormalizedPosition = 1;
-        // this.UpdateButtons();
     }
 }
