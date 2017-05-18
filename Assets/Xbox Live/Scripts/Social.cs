@@ -4,6 +4,7 @@
 using System;
 using global::System.Collections;
 using global::System.Collections.Generic;
+using System.Globalization;
 
 using Microsoft.Xbox.Services;
 using Microsoft.Xbox.Services.Social.Manager;
@@ -24,7 +25,7 @@ public class Social : MonoBehaviour
     {
         this.EnsureEventSystem();
         this.entryObjectPool = this.GetComponent<ObjectPool>();
-        SocialManagerComponent.Instance.EventProcessed += this.OnEventProcessed;
+        //SocialManagerComponent.Instance.EventProcessed += this.OnEventProcessed;
 
         presenceFilterDropdown.options.Clear();
         presenceFilterDropdown.options.Add(new Dropdown.OptionData() { text = PresenceFilter.All.ToString() });
@@ -38,7 +39,25 @@ public class Social : MonoBehaviour
         });
     }
 
-    private void OnEventProcessed(object sender, SocialEvent socialEvent)
+    public void FixedUpdate()
+    {
+        try
+        {
+            var socialEvents = XboxLive.Instance.SocialManager.DoWork();
+
+            foreach (SocialEvent socialEvent in socialEvents)
+            {
+                Debug.LogFormat("[SocialManager] Processed {0} event.", socialEvent.EventType);
+                this.OnEventProcessed(socialEvent);
+            }
+        }
+        catch (Exception e)
+        {
+            Debug.LogError(e.ToString());
+        }
+    }
+
+    private void OnEventProcessed(SocialEvent socialEvent)
     {
         switch (socialEvent.EventType)
         {
@@ -49,15 +68,16 @@ public class Social : MonoBehaviour
                 }
                 break;
             case SocialEventType.SocialUserGroupLoaded:
+            case SocialEventType.SocialUserGroupUpdated:
+            case SocialEventType.PresenceChanged:
+                this.RefreshSocialGroups();
                 break;
         }
-
-        RefreshSocialGroups();
     }
 
     private void PresenceFilterValueChangedHandler(Dropdown target)
     {
-        RefreshSocialGroups();
+        this.RefreshSocialGroups();
     }
 
     private void CreateDefaulSocialGraphs()
@@ -85,14 +105,30 @@ public class Social : MonoBehaviour
 
         foreach (XboxSocialUser user in socialUserGroup.Users)
         {
+            //  WWW www = new WWW(user.DisplayPicRaw + "&w=128");
+            // yield return www;
+
+            //Texture2D t = www.texture;
+            //Rect r = new Rect(0, 0, t.width, t.height);
+
             GameObject entryObject = this.entryObjectPool.GetObject();
             XboxSocialUserEntry entry = entryObject.GetComponent<XboxSocialUserEntry>();
-
             entry.Data = user;
+            //entry.gamerpicImage.sprite = Sprite.Create(t, r, Vector2.zero);
+            //entry.gamerpicMask.color = Color.white;
             entryObject.transform.SetParent(this.contentPanel);
         }
 
         // Reset the scroll view to the top.
         this.scrollRect.verticalNormalizedPosition = 1;
+    }
+
+    public static Color ColorFromHexString(string color)
+    {
+        float r = (float)byte.Parse(color.Substring(0, 2), NumberStyles.HexNumber) / 255;
+        float g = (float)byte.Parse(color.Substring(2, 2), NumberStyles.HexNumber) / 255;
+        float b = (float)byte.Parse(color.Substring(4, 2), NumberStyles.HexNumber) / 255;
+
+        return new Color(r, g, b);
     }
 }

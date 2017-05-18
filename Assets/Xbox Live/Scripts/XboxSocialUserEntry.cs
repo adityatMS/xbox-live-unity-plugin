@@ -10,6 +10,7 @@ public class XboxSocialUserEntry : MonoBehaviour
 {
     public Button entryButton;
     public Image gamerpicImage;
+    public Image gamerpicMask;
     public Text gamertagText;
     public Text presenceText;
 
