@@ -109,8 +109,24 @@ TCUIShowProfileCardUI(
     );
 
 XSAPI_DLLEXPORT void XSAPI_CALL
+TCUIShowProfileCardUIForUser(
+    _In_ PCSTR_T targetXboxUserId,
+    _In_ IInspectable* user,
+    _In_ TCUIShowProfileCardUICompletionRoutine completionRoutine,
+    _In_opt_ void* completionRoutineContext
+    );
+
+XSAPI_DLLEXPORT void XSAPI_CALL
 TCUICheckGamingPrivilegeSilently(
     _In_ GAMING_PRIVILEGE privilege,
+    _In_ TCUICheckGamingPrivilegeCompletionRoutine completionRoutine,
+    _In_opt_ void* completionRoutineContext
+    );
+
+XSAPI_DLLEXPORT void XSAPI_CALL
+TCUICheckGamingPrivilegeSilentlyForUser(
+    _In_ GAMING_PRIVILEGE privilege,
+    _In_ IInspectable* user,
     _In_ TCUICheckGamingPrivilegeCompletionRoutine completionRoutine,
     _In_opt_ void* completionRoutineContext
     );
@@ -119,6 +135,15 @@ XSAPI_DLLEXPORT void XSAPI_CALL
 TCUICheckGamingPrivilegeWithUI(
     _In_ GAMING_PRIVILEGE privilege,
     _In_ PCSTR_T friendlyMessage,
+    _In_ TCUICheckGamingPrivilegeCompletionRoutine completionRoutine,
+    _In_opt_ void* completionRoutineContext
+    );
+
+XSAPI_DLLEXPORT void XSAPI_CALL
+TCUICheckGamingPrivilegeWithUIForUser(
+    _In_ GAMING_PRIVILEGE privilege,
+    _In_ PCSTR_T friendlyMessage,
+    _In_ IInspectable* user,
     _In_ TCUICheckGamingPrivilegeCompletionRoutine completionRoutine,
     _In_opt_ void* completionRoutineContext
     );

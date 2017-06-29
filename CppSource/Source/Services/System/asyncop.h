@@ -53,7 +53,7 @@ xbl_asyncop_write_result(_In_ const std::shared_ptr<xsapi_async_info>& info, _Ou
 {
     if (size != sizeof(T)) return false;
     auto args = std::dynamic_pointer_cast<T2>(info->args);
-    *(T*)result = args->m_result;
+    *(T*)result = args->result;
     return true;
 }
 
