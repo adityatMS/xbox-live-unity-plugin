@@ -35,13 +35,13 @@ namespace UWPIntegration
         private XboxSocialUserGroup xboxSocialUserGroupAll;
         private XboxSocialUserGroup xboxSocialUserGroupAllOnline;
         private XboxSocialUserGroup xboxSocialUserGroupFromList;
-        private readonly XboxLiveUser user;
+        private XboxLiveUser user;
 
         public MainPage()
         {
             this.InitializeComponent();
-            this.user = new XboxLiveUser();
-            DoWork();
+            Start();
+            // DoWork();
         }
 
         public LeaderboardResult LeaderboardResult
@@ -99,6 +99,7 @@ namespace UWPIntegration
         public XboxLiveUser User
         {
             get { return this.user; }
+            set { this.user = value; }
         }
 
         public IStatsManager StatsManager
@@ -185,7 +186,7 @@ namespace UWPIntegration
 
         private void ShowProfileCard_Click(object sender, RoutedEventArgs e)
         {
-            TitleCallableUI.ShowProfileCardUIAsync(this.User, "2814613569642996");
+            TitleCallableUI.ShowProfileCardUIAsync("2814613569642996");
         }
 
         private async void CheckPrivilege_Click(object sender, RoutedEventArgs e)
@@ -193,11 +194,11 @@ namespace UWPIntegration
             // If you want to see the dialog, change your privacy settings to block 
             // multilayer sessions for this account on the console
 
-            var checkPermission = TitleCallableUI.CheckGamingPrivilegeSilently(this.User, GamingPrivilege.MultiplayerSessions);
+            var checkPermission = TitleCallableUI.CheckGamingPrivilegeSilently(GamingPrivilege.MultiplayerSessions);
             if (!checkPermission)
             {
                 // Show UI if CheckPrivilegeSilently fails.
-                var result = await TitleCallableUI.CheckGamingPrivilegeWithUI(this.User, GamingPrivilege.MultiplayerSessions, "");
+                var result = await TitleCallableUI.CheckGamingPrivilegeWithUI(GamingPrivilege.MultiplayerSessions, "");
             }
         }
 
@@ -270,7 +271,6 @@ namespace UWPIntegration
             this.XboxSocialUserGroupFromList = this.XboxSocialUserGroupFromList;
         }
 
-
         async void DoWork()
         {
             while (true)
@@ -322,6 +322,59 @@ namespace UWPIntegration
                 // don't run again for at least 200 milliseconds
                 await Task.Delay(200);
             }
+        }
+
+        private async void Start()
+        {
+            bool APIExist = Windows.Foundation.Metadata.ApiInformation.IsMethodPresent("Windows.System.UserPicker", "IsSupported");
+            bool isMultiUserApplication = APIExist && Windows.System.UserPicker.IsSupported();
+
+            Debug.WriteLine("This is a " + (isMultiUserApplication ? "MUA" : "SUA"));
+
+            if(!isMultiUserApplication)
+            {
+                this.user = new XboxLiveUser();
+                return;
+            }
+
+            var allUser = await Windows.System.User.FindAllAsync();
+            var validSysUser = allUser.Where(user => (user.Type != Windows.System.UserType.LocalGuest || user.Type != Windows.System.UserType.RemoteGuest)).ToList();
+            Debug.WriteLine($"Found {validSysUser.Count} system user.");
+
+            validSysUser.ForEach(async user =>
+            {
+                var id = user.NonRoamableId;
+
+                try
+                {
+                    Debug.WriteLine($"Creating XboxLiveUser id: {id}");
+                    this.User = new XboxLiveUser(user);
+
+                    Debug.WriteLine($"Signing in silently, id: {id}");
+                    var signInResult = await this.User.SignInSilentlyAsync();
+
+                    Debug.WriteLine($"Sign in silently result: {signInResult.Status}, id: {id}");
+
+                    if (signInResult.Status == SignInStatus.UserInteractionRequired)
+                    {
+                        Debug.WriteLine($"Signing in with UI, id: {id}");
+                        signInResult = await this.User.SignInAsync();
+                        Debug.WriteLine($"Sign in result: {signInResult.Status}, id: {id}");
+                    }
+
+                    //var checkPermission = TitleCallableUI.CheckGamingPrivilegeSilentlyForUser(GamingPrivilege.MultiplayerSessions, this.User.WindowsSystemUser);
+                    //if (!checkPermission)
+                    //{
+                    //    // Show UI if CheckPrivilegeSilently fails.
+                    //    var result = await TitleCallableUI.CheckGamingPrivilegeWithUIForUser(GamingPrivilege.MultiplayerSessions, "", this.User.WindowsSystemUser);
+                    //}
+
+                }
+                catch (Exception e)
+                {
+                    Debug.WriteLine($"sign in failed, id:{id}, Exception: " + e.ToString());
+                }
+            });
         }
 
         public event PropertyChangedEventHandler PropertyChanged;

@@ -9,6 +9,7 @@ namespace Microsoft.Xbox.Services
     using global::System.Runtime.InteropServices;
     using Microsoft.Xbox.Services.Social.Manager;
     using Microsoft.Xbox.Services.Statistics.Manager;
+    using global::System.Diagnostics;
 
     public partial class XboxLive : IDisposable
     {
@@ -40,7 +41,7 @@ namespace Microsoft.Xbox.Services
             if (IntPtr.Size == 8)
             {
                 // Detect Process is 64bit
-                fileName = @"Microsoft.Xbox.Services.140.UWP.C.x64.dll";
+                fileName = @"microsoft.xbox.services.140.uwp.c.x64.dll";
             }
 
             try
@@ -135,6 +136,9 @@ namespace Microsoft.Xbox.Services
             [DllImport("kernel32", SetLastError = true, CharSet = CharSet.Unicode)]
             internal static extern IntPtr LoadLibrary(string lpFileName);
 
+            [DllImport("kernel32", SetLastError = true, CharSet = CharSet.Unicode)]
+            internal static extern IntPtr LoadPackagedLibrary(string lpwLibFileName, int Reserved);
+
             [DllImport("kernel32", SetLastError = true)]
             [return: MarshalAs(UnmanagedType.Bool)]
             public static extern bool FreeLibrary(IntPtr hModule);
@@ -145,7 +149,35 @@ namespace Microsoft.Xbox.Services
 
         public static IntPtr LoadNativeDll(string fileName)
         {
-            IntPtr nativeDll = NativeMethods.LoadLibrary(fileName);
+            IntPtr nativeDll = new IntPtr();
+            try
+            {
+                nativeDll = NativeMethods.LoadPackagedLibrary(fileName, 0);
+                Debug.WriteLine(Marshal.GetLastWin32Error());
+
+                //nativeDll = NativeMethods.LoadLibrary("api-ms-win-core-handle-l1-1-0.dll");
+                //Debug.WriteLine(Marshal.GetLastWin32Error());
+
+                //nativeDll = NativeMethods.LoadLibrary("ucrtbased.dll");
+                //Debug.WriteLine(Marshal.GetLastWin32Error());
+
+                //nativeDll = NativeMethods.LoadLibrary("VCRUNTIME140D_APP.dll");
+                //Debug.WriteLine(Marshal.GetLastWin32Error());
+
+                //nativeDll = NativeMethods.LoadLibrary("CONCRT140D_APP.dll");
+                //Debug.WriteLine(Marshal.GetLastWin32Error());
+
+                //nativeDll = NativeMethods.LoadLibrary("MSVCP140D_APP.dll");
+                //Debug.WriteLine(Marshal.GetLastWin32Error());
+
+                //nativeDll = NativeMethods.LoadLibrary("vccorlib140d_app.DLL");
+                //Debug.WriteLine(Marshal.GetLastWin32Error());
+            }
+            catch (Exception)
+            {
+                throw new XboxException("Failed to load " + fileName);
+            }
+
             if (nativeDll == IntPtr.Zero)
             {
                 throw new Win32Exception();
