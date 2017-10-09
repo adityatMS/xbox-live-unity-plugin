@@ -56,6 +56,25 @@ namespace UWPIntegration
             {
                 this.user = new XboxLiveUser();
             }
+
+            XboxLiveUser.SignInCompleted += (sender, args) =>
+            {
+                this.OnSignInCompleted(args);
+            };
+            XboxLiveUser.SignOutCompleted += (sender, args) =>
+            {
+                this.OnSignOutCompleted(args);
+            };
+        }
+
+        private void OnSignInCompleted(SignInCompletedEventArgs args)
+        {
+            Debug.WriteLine("OnSignInCompleted: " + args.User.Gamertag + " (" + args.User.XboxUserId + ")");
+        }
+
+        private void OnSignOutCompleted(SignOutCompletedEventArgs args)
+        {
+            Debug.WriteLine("OnSignOutCompleted: " + args.User.Gamertag + " (" + args.User.XboxUserId + ")");
         }
 
         public LeaderboardResult LeaderboardResult

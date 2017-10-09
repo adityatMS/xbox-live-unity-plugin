@@ -9,6 +9,7 @@ using System.Globalization;
 using System.Threading.Tasks;
 
 using Microsoft.Xbox.Services;
+using Microsoft.Xbox.Services.Social;
 using Microsoft.Xbox.Services.Social.Manager;
 
 using UnityEngine;
@@ -21,6 +22,10 @@ public class UserProfile : MonoBehaviour
     public string InputControllerButton;
 
     private bool SignInCalledOnce;
+
+    private bool SignOutCalled;
+
+    private XboxUserProfile XboxUserProfile;
 
     [HideInInspector]
     public GameObject signInPanel;
@@ -96,11 +101,6 @@ public class UserProfile : MonoBehaviour
         this.Refresh();
     }
 
-    private void XboxLiveUserOnSignOutCompleted(object sender, SignOutCompletedEventArgs signOutCompletedEventArgs)
-    {
-        this.Refresh();
-    }
-
     public void SignIn()
     {
         this.StartCoroutine(this.InitializeXboxLiveUser());
@@ -147,12 +147,13 @@ public class UserProfile : MonoBehaviour
                             {
                                 this.XboxLiveUser.WindowsSystemUser = task.Result;
                                 this.XboxLiveUser.Initialize();
+                                this.RegisterXboxLiveUserEvents();
                             }
                             else
                             {
                                 if (XboxLiveServicesSettings.Instance.DebugLogsOn)
                                 {
-                                    Debug.Log("Exception occured: " + task.Exception.Message);
+                                    Debug.Log("Exception occurred: " + task.Exception.Message);
                                 }
                             }
                         });
@@ -166,6 +167,7 @@ public class UserProfile : MonoBehaviour
             if (this.XboxLiveUser.User == null)
             {
                 this.XboxLiveUser.Initialize();
+                this.RegisterXboxLiveUserEvents();
             }
         }
 #else
@@ -175,7 +177,36 @@ public class UserProfile : MonoBehaviour
         }
 
         this.XboxLiveUser.Initialize();
+        this.RegisterXboxLiveUserEvents();
 #endif
+    }
+
+    private void RegisterXboxLiveUserEvents()
+    {
+        Microsoft.Xbox.Services.XboxLiveUser.SignInCompleted += (sender, args) =>
+        {
+            Debug.LogFormat("OnSignInCompleted: " + args.User.Gamertag + " (" + args.User.XboxUserId + ")");
+        };
+
+        Microsoft.Xbox.Services.XboxLiveUser.SignOutCompleted += (sender, args) =>
+        {
+            Debug.LogFormat("OnSignOutCompleted: " + args.User.Gamertag + " (" + args.User.XboxUserId + ")");
+
+            try
+            {
+                XboxLive.Instance.SocialManager.RemoveLocalUser((XboxLiveUser)args.User);
+                // XboxLive.Instance.StatsManager.RemoveLocalUser((XboxLiveUser)args.User);
+            }
+            catch (System.Exception ex)
+            {
+                if (XboxLiveServicesSettings.Instance.DebugLogsOn)
+                {
+                    Debug.Log("There was an error while removing local users from the Managers. Exception: " + ex.Message);
+                }
+            }
+
+            this.SignOutCalled = true;
+        };
     }
 
     public IEnumerator SignInAsync()
@@ -196,16 +227,16 @@ public class UserProfile : MonoBehaviour
         // Throw any exceptions if needed.
         if (signInStatus == SignInStatus.Success)
         {
-            XboxLive.Instance.StatsManager.AddLocalUser(this.XboxLiveUser.User);
             XboxLive.Instance.PresenceWriter.AddUser(this.XboxLiveUser.User);
-            var addLocalUserTask =
-                XboxLive.Instance.SocialManager.AddLocalUser(
+            var userProfileTask =
+                XboxLive.Instance.ProfileService.GetUserProfileAsync(
                     this.XboxLiveUser.User,
-                    SocialManagerExtraDetailLevel.PreferredColor).AsCoroutine();
-            yield return addLocalUserTask;
+                    this.XboxLiveUser.User.XboxUserId).AsCoroutine();
+            yield return userProfileTask;
 
-            if (!addLocalUserTask.Task.IsFaulted)
+            if (!userProfileTask.Task.IsFaulted)
             {
+                this.XboxUserProfile = userProfileTask.Result;
                 yield return this.LoadProfileInfo();
             }
         }
@@ -214,10 +245,7 @@ public class UserProfile : MonoBehaviour
     private IEnumerator LoadProfileInfo()
     {
         var userId = ulong.Parse(this.XboxLiveUser.User.XboxUserId);
-        var group = XboxLive.Instance.SocialManager.CreateSocialUserGroupFromList(this.XboxLiveUser.User, new List<ulong> { userId });
-        var socialUser = group.GetUser(userId);
-
-        var www = new WWW(socialUser.DisplayPicRaw + "&w=128");
+        var www = new WWW(this.XboxUserProfile.GameDisplayPictureResizeUri.AbsoluteUri + "&w=128");
         yield return null;
 
         try
@@ -230,14 +258,14 @@ public class UserProfile : MonoBehaviour
             }
 
             this.gamertag.text = this.XboxLiveUser.User.Gamertag;
-            this.gamerscore.text = socialUser.Gamerscore;
+            this.gamerscore.text = this.XboxUserProfile.Gamerscore;
 
-            if (socialUser.PreferredColor != null)
-            {
-                this.profileInfoPanel.GetComponent<Image>().color =
-                    ColorFromHexString(socialUser.PreferredColor.PrimaryColor);
-                this.gamerpicMask.color = ColorFromHexString(socialUser.PreferredColor.PrimaryColor);
-            }
+            //if (socialUser.PreferredColor != null)
+            //{
+            //    this.profileInfoPanel.GetComponent<Image>().color =
+            //        ColorFromHexString(socialUser.PreferredColor.PrimaryColor);
+            //    this.gamerpicMask.color = ColorFromHexString(socialUser.PreferredColor.PrimaryColor);
+            //}
 
         }
         catch (Exception ex)

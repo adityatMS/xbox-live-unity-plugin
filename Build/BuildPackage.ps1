@@ -39,11 +39,17 @@ $unityProcess | Wait-Process -Timeout 120 -ErrorAction SilentlyContinue
 
 if(!$unityProcess.HasExited)
 {
+    Write-Host "Moving Readme.txt back into the Game Save folder ..."
+    Move-Item (Resolve-Path (Join-Path $tempGameSaveFolder 'README.txt')) -Destination $gameSaveAssetsPath 
+    
     Write-Warning "Unity (PID $($unityProcess.Id)) seems to be taking a long time to generate the package.  Check the log file for details to see what's happening."
     Write-Warning "Log: $logFile"
 }
 elseif($unityProcess.ExitCode -ne 0)
 {
+    Write-Host "Moving Readme.txt back into the Game Save folder ..."
+    Move-Item (Resolve-Path (Join-Path $tempGameSaveFolder 'README.txt')) -Destination $gameSaveAssetsPath 
+    
     Write-Warning "Log: $logFile"
     Write-Error "Unity.exe failed to build game save package.  Exit Code: $($unityProcess.ExitCode)."
 }

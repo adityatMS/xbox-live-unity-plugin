@@ -222,13 +222,13 @@ namespace Microsoft.Xbox.Services.System
                 {
                     contextObject.TaskCompletionSource.SetResult(new TokenAndSignatureResult
                     {
-                        WebAccountId = result.payload.WebAccountId,
-                        Privileges = result.payload.Privileges,
-                        AgeGroup = result.payload.AgeGroup,
-                        Gamertag = result.payload.Gamertag,
-                        XboxUserId = result.payload.XboxUserId,
-                        Signature = result.payload.Signature,
-                        Token = result.payload.Token
+                        WebAccountId = MarshalingHelpers.Utf8ToString(result.payload.WebAccountId),
+                        Privileges = MarshalingHelpers.Utf8ToString(result.payload.Privileges),
+                        AgeGroup = MarshalingHelpers.Utf8ToString(result.payload.AgeGroup),
+                        Gamertag = MarshalingHelpers.Utf8ToString(result.payload.Gamertag),
+                        XboxUserId = MarshalingHelpers.Utf8ToString(result.payload.XboxUserId),
+                        Signature = MarshalingHelpers.Utf8ToString(result.payload.Signature),
+                        Token = MarshalingHelpers.Utf8ToString(result.payload.Token)
                         //TokenRequestResultStatus = tokenResult.ResponseStatus
                     });
                 }
@@ -319,29 +319,29 @@ namespace Microsoft.Xbox.Services.System
         [StructLayout(LayoutKind.Sequential)]
         private struct TokenAndSignatureResultPayload_c
         {
-            [MarshalAsAttribute(UnmanagedType.LPStr)]
-            public string Token;
+            [MarshalAsAttribute(UnmanagedType.SysInt)]
+            public IntPtr Token;
 
-            [MarshalAsAttribute(UnmanagedType.LPStr)]
-            public string Signature;
+            [MarshalAsAttribute(UnmanagedType.SysInt)]
+            public IntPtr Signature;
 
-            [MarshalAsAttribute(UnmanagedType.LPStr)]
-            public string XboxUserId;
+            [MarshalAsAttribute(UnmanagedType.SysInt)]
+            public IntPtr XboxUserId;
 
-            [MarshalAsAttribute(UnmanagedType.LPStr)]
-            public string Gamertag;
+            [MarshalAsAttribute(UnmanagedType.SysInt)]
+            public IntPtr Gamertag;
 
-            [MarshalAsAttribute(UnmanagedType.LPStr)]
-            public string XboxUserHash;
+            [MarshalAsAttribute(UnmanagedType.SysInt)]
+            public IntPtr XboxUserHash;
 
-            [MarshalAsAttribute(UnmanagedType.LPStr)]
-            public string AgeGroup;
+            [MarshalAsAttribute(UnmanagedType.SysInt)]
+            public IntPtr AgeGroup;
 
-            [MarshalAsAttribute(UnmanagedType.LPStr)]
-            public string Privileges;
+            [MarshalAsAttribute(UnmanagedType.SysInt)]
+            public IntPtr Privileges;
 
-            [MarshalAsAttribute(UnmanagedType.LPStr)]
-            public string WebAccountId;
+            [MarshalAsAttribute(UnmanagedType.SysInt)]
+            public IntPtr WebAccountId;
         }
 
         [StructLayout(LayoutKind.Sequential)]

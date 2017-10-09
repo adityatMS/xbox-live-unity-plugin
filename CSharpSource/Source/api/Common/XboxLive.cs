@@ -11,6 +11,7 @@ namespace Microsoft.Xbox.Services
     using Microsoft.Xbox.Services.Social.Manager;
     using Microsoft.Xbox.Services.Statistics.Manager;
     using Microsoft.Xbox.Services.System;
+    using Microsoft.Xbox.Services.Social;
 
     public partial class XboxLive : IDisposable
     {
@@ -21,6 +22,7 @@ namespace Microsoft.Xbox.Services
         private IStatsManager statsManager;
         private ISocialManager socialManager;
         private IPresenceWriter presenceWriter;
+        private ProfileService profileService;
 
         private static readonly object instanceLock = new object();
         private readonly XboxLiveAppConfiguration appConfig;
@@ -88,7 +90,7 @@ namespace Microsoft.Xbox.Services
 
         public IPresenceWriter PresenceWriter {
             get 
-			{
+            {
                 if (Instance.presenceWriter == null) {
                     Instance.presenceWriter = Presence.PresenceWriter.Instance;
                 }
@@ -117,6 +119,18 @@ namespace Microsoft.Xbox.Services
                     Instance.statsManager = Statistics.Manager.StatsManager.Instance;
                 }
                 return Instance.statsManager;
+            }
+        }
+
+        public ProfileService ProfileService
+        {
+            get
+            {
+                if (Instance.profileService == null)
+                {
+                    Instance.profileService = new ProfileService();
+                }
+                return Instance.profileService;
             }
         }
 
